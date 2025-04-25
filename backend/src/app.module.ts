@@ -4,13 +4,15 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { MessagesModule } from './messages/messages.module';
+import { WebsocketsModule } from './websockets/websockets.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -18,8 +20,10 @@ import { UsersModule } from './users/users.module';
       }),
       inject: [ConfigService],
     }),
-    
     UsersModule,
+    AuthModule,
+    MessagesModule,
+    WebsocketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
