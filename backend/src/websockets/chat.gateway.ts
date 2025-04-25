@@ -3,7 +3,7 @@ import { Server, Socket } from 'socket.io';
 import { UseGuards } from '@nestjs/common';
 import { MessageService } from '../messages/message.service';
 import { AuthService } from '../auth/auth.service';
-import { WsJwtGuard } from '../auth/guards';
+import { WsJwtGuard } from '../auth/auth.guards';
 
 @WebSocketGateway({
   cors: {
