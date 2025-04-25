@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
 import { MessageService } from './message.service';
 import { CreateMessageDto } from './create-message.dto';
-import { JwtAuthGuard } from '../auth/guards';
+import { JwtAuthGuard } from '../auth/auth.guards';
 
 @Controller('messages')
 export class MessageController {
@@ -14,10 +14,10 @@ export class MessageController {
   }
 
   @Get()
-  async findAll(@Query('page') page: number, @Query('limit') limit: number) {
-    if (page) {
-      return this.messageService.findRecentMessages(page, limit);
-    }
-    return this.messageService.findAll();
+  async list(
+    @Query('page', ParseIntPipe) page?: number,
+    @Query('limit', ParseIntPipe) limit?: number,
+  ) {
+    return this.messageService.findMessages(page, limit);
   }
 }
