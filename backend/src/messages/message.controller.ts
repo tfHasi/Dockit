@@ -13,6 +13,7 @@ export class MessageController {
     return this.messageService.create(createMessageDto, req.user.userId);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   async list(
     @Query('page', ParseIntPipe) page?: number,
