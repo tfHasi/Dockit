@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../pages/_app';
+import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../lib/socket';
 
 interface Message {
@@ -22,7 +22,7 @@ export default function MessageList() {
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/messages?page=1&limit=50`, {
+        const response = await fetch(`${API_BASE_URL}/messages?page=1&limit=20`, {
           credentials: 'include',
         });
         

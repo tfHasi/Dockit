@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getSocket } from '../lib/socket';
-import { useAuth } from '../pages/_app';
+import { useAuth } from '../context/AuthContext';
 
 interface OnlineUser {
   userId: string;

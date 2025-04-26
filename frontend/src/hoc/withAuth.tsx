@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../pages/_app';
+import { useAuth } from '../context/AuthContext';
 
 export function withAuth<P extends object>(Component: React.ComponentType<P>) {
   return function ProtectedRoute(props: P) {
@@ -28,5 +28,3 @@ export function withAuth<P extends object>(Component: React.ComponentType<P>) {
     return <Component {...props} />;
   };
 }
-
-export default withAuth;
