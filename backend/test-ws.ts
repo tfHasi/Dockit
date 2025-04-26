@@ -1,13 +1,11 @@
-// test-ws.js
 import { io } from 'socket.io-client';
 
-// Replace this with the JWT you obtained from /auth/login
-const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwic3ViIjoiNjgwYmQ5NDkxMDk0MjcxNjY0OTYyNDQ4IiwiaWF0IjoxNzQ1NjExNTg3LCJleHAiOjE3NDU2OTc5ODd9.887-j4c3pyrPcVeTYdl5D-OMnpAN16LVPscfu8lnsfk';
+const TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFsaWNlQGV4YW1wbGUuY29tIiwic3ViIjoiNjgwYmQ5NDkxMDk0MjcxNjY0OTYyNDQ4Iiwibmlja25hbWUiOiJhbGljZSIsImlhdCI6MTc0NTYyODA0NSwiZXhwIjoxNzQ1NzE0NDQ1fQ.TedoQS3WapVZZT49pkrvesPJvh6CMYYiIVRaersHgZw';
 
 async function main() {
   const socket = io('http://localhost:3000', {
     auth: { token: TOKEN },
-    transports: ['websocket'],  // skip polling, go straight to WS
+    transports: ['websocket'],
   });
 
   socket.on('connect', () => {
@@ -15,10 +13,24 @@ async function main() {
 
     // Send a test message
     socket.emit('sendMessage', { text: 'Hello from Node client!' });
+
+    // Simulate typing
+    setTimeout(() => {
+      console.log('✍️ Emitting typing...');
+      socket.emit('typing', { isTyping: true });
+    }, 1000);
   });
 
   socket.on('newMessage', (msg) => {
     console.log('📨 newMessage event:', msg);
+  });
+
+  socket.on('onlineUsers', (users) => {
+    console.log('🟢 Online users:', users);
+  });
+
+  socket.on('userTyping', (data) => {
+    console.log('✍️ userTyping event:', data);
   });
 
   socket.on('connect_error', (err) => {
@@ -29,7 +41,7 @@ async function main() {
     console.error('⚠️ Server error event:', err);
   });
 
-  // Optionally disconnect after a while
+  // Auto disconnect after 5s
   setTimeout(() => {
     socket.close();
     console.log('🔌 Disconnected');
