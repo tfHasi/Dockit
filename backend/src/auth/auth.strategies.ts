@@ -5,6 +5,7 @@ import { Strategy as LocalStrategyBase } from 'passport-local';
 import { ConfigService } from '@nestjs/config';
 import { UserService } from '../users/user.service';
 import { AuthService } from './auth.service';
+import { Request } from 'express';
 
 // JWT STRATEGY
 @Injectable()
@@ -14,7 +15,9 @@ export class JwtStrategy extends PassportStrategy(JwtStrategyBase) {
     private userService: UserService,
   ) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: (req: Request) => {
+        return req?.cookies?.jwt;
+      },
       ignoreExpiration: false,
       secretOrKey: configService.getOrThrow<string>('JWT_SECRET'),
     });
