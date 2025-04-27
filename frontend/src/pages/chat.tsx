@@ -4,11 +4,13 @@ import { withAuth } from '../hoc/withAuth';
 import MessageList from '../components/MessageList';
 import MessageInput from '../components/MessageInput';
 import OnlineUsers from '../components/OnlineUsers';
-import { useAuth } from './_app';
+import { useAuth } from '../context/AuthContext';
 import { initSocket, disconnectSocket } from '../lib/socket';
+import { useRouter } from 'next/router';
 
 function Chat() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const socket = initSocket();
@@ -17,6 +19,10 @@ function Chat() {
       disconnectSocket();
     };
   }, []);
+
+  const handleLogout = () => {
+    router.push('/login');
+  };
 
   return (
     <>
@@ -32,7 +38,7 @@ function Chat() {
             <div className="flex items-center space-x-4">
               <span>Welcome, {user?.nickname}</span>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="px-3 py-1 bg-blue-700 hover:bg-blue-800 rounded text-sm"
               >
                 Logout
