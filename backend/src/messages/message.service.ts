@@ -32,9 +32,10 @@ export class MessageService {
     limit: number = 20,
   ): Promise<MessageDocument[]> {
     const skip = (page - 1) * limit;
+
     return this.messageModel
       .find()
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit)
       .exec();

@@ -16,7 +16,6 @@ export default function OnlineUsers() {
     const socket = getSocket();
     if (!socket) return;
 
-    // Request initial online users list
     socket.emit('getOnlineUsers');
 
     const handleOnlineUsers = (users: OnlineUser[]) => {

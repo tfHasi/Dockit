@@ -17,8 +17,6 @@ export const initSocket = async (): Promise<Socket> => {
     });
   }
 
-  console.log('Initializing new socket connection to:', API_BASE_URL);
-
   socket = io(API_BASE_URL!, {
     autoConnect: true,
     withCredentials: true,
@@ -28,12 +26,10 @@ export const initSocket = async (): Promise<Socket> => {
 
   return new Promise((resolve, reject) => {
     socket!.on('connect', () => {
-      console.log('✅ Socket connected successfully:', socket!.id);
       resolve(socket!);
     });
 
     socket!.on('connect_error', (err) => {
-      console.error('❌ Socket connection error:', err.message);
       reject(err);
     });
   });
@@ -43,7 +39,6 @@ export const getSocket = (): Socket | null => socket;
 
 export const disconnectSocket = (): void => {
   if (socket) {
-    console.log('🔌 Disconnecting socket');
     socket.disconnect();
     socket = null;
   }
