@@ -11,10 +11,10 @@ interface ConnectedUser {
   nickname: string;
 }
 
-@Injectable() // Add Injectable decorator to make this available for dependency injection
+@Injectable()
 @WebSocketGateway({
   cors: {
-    origin: 'http://localhost:3001',
+    origin: process.env.NEXT_PUBLIC_APP_URL,
     credentials: true,
   },
 })

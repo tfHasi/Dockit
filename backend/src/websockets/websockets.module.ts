@@ -10,9 +10,9 @@ import { UsersModule } from '../users/users.module';
   imports: [
     AuthModule,
     UsersModule,
-    MongooseModule.forFeature([{ name: Message.name, schema: MessageSchema }]), // Direct schema access
+    MongooseModule.forFeature([{ name: Message.name, schema: MessageSchema }]),
   ],
-  providers: [ChatGateway, MessageService], // Provide MessageService here
+  providers: [ChatGateway, MessageService],
   exports: [ChatGateway],
 })
 export class WebsocketsModule {}
