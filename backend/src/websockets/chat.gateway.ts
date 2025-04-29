@@ -1,6 +1,6 @@
-import {WebSocketGateway, WebSocketServer, SubscribeMessage, OnGatewayConnection, OnGatewayDisconnect,} from '@nestjs/websockets';
+import {WebSocketGateway, WebSocketServer, SubscribeMessage, OnGatewayConnection, OnGatewayDisconnect} from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Injectable } from '@nestjs/common';
 import { MessageService } from '../messages/message.service';
 import { AuthService } from '../auth/auth.service';
 import { WsJwtGuard } from '../auth/auth.guards';
@@ -11,6 +11,7 @@ interface ConnectedUser {
   nickname: string;
 }
 
+@Injectable() // Add Injectable decorator to make this available for dependency injection
 @WebSocketGateway({
   cors: {
     origin: 'http://localhost:3001',
@@ -30,19 +31,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket) {
     try {
-      const token = client.handshake.auth.token || client.handshake.headers.authorization?.split(' ')[1];
+      // Extract cookie from handshake
+      const cookies = client.handshake.headers.cookie;
+      if (!cookies) {
+        throw new Error('No cookies found');
+      }
+      
+      // Parse the cookie string to find JWT
+      const cookieArray = cookies.split(';').map(cookie => cookie.trim());
+      const jwtCookie = cookieArray.find(cookie => cookie.startsWith('jwt='));
+      
+      if (!jwtCookie) {
+        throw new Error('JWT cookie not found');
+      }
+      
+      const token = jwtCookie.split('=')[1];
       const payload = this.authService.verifyToken(token);
-
+  
       const userId = payload.sub;
       const nickname = payload.nickname;
-
+  
       client['user'] = payload;
       this.onlineUsers.set(client.id, { socket: client, userId, nickname });
-
+  
       this.broadcastOnlineUsers();
       console.log(`User connected: ${nickname} (${client.id})`);
     } catch (err) {
-      console.log('Unauthorized connection attempt');
+      console.log('Unauthorized connection attempt:', err.message);
       client.disconnect();
     }
   }
@@ -61,6 +76,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.emit('onlineUsers', users);
   }
 
+  /**
+   * Public method that can be called from MessageController to broadcast a new message
+   */
+  broadcastNewMessage(message: any) {
+    this.server.emit('newMessage', {
+      id: message._id,
+      text: message.text,
+      userId: message.userId,
+      nickname: message.nickname,
+      createdAt: message.createdAt,
+    });
+  }
+
+  @UseGuards(WsJwtGuard)
+  @SubscribeMessage('messageNotification')
+  async handleMessageNotification(client: Socket) {
+    try {
+      // This is a simpler version that just triggers a refresh
+      client.broadcast.emit('refreshMessages');
+      return { success: true };
+    } catch (error) {
+      client.emit('error', { message: 'Failed to notify about new message' });
+      return { success: false, error: error.message };
+    }
+  }
+
   @UseGuards(WsJwtGuard)
   @SubscribeMessage('sendMessage')
   async handleMessage(client: Socket, payload: { text: string }) {
@@ -76,8 +117,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         nickname: message.nickname,
         createdAt: message.createdAt,
       });
+      
+      return { success: true };
     } catch (error) {
       client.emit('error', { message: 'Failed to process message' });
+      return { success: false, error: error.message };
     }
   }
 
