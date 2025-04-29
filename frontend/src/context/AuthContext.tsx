@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { initSocket, disconnectSocket, initSocketWithDelay } from '../lib/socket';
 
 export interface User {
   userId: string;
@@ -26,15 +27,37 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start as true to check auth status on load
   const router = useRouter();
   const API = process.env.NEXT_PUBLIC_API_URL;
 
+  // Check authentication status on initial load
   useEffect(() => {
-    console.log('API URL:', API);
-    if (!API) {
-      console.error('NEXT_PUBLIC_API_URL environment variable is not set');
-    }
+    const checkAuthStatus = async () => {
+      try {
+        const res = await fetch(`${API}/auth/me`, {
+          credentials: 'include',
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          // Initialize socket after confirming authentication
+          initSocket();
+        }
+      } catch (err) {
+        console.error('Auth check error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuthStatus();
+    
+    return () => {
+      // Clean up socket on unmount
+      disconnectSocket();
+    };
   }, [API]);
 
   const login = async (email: string, password: string) => {
@@ -54,6 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const data = await res.json();
       setUser(data.user);
+      
+      // Use the delayed initialization to ensure cookie is set
+      initSocketWithDelay();
+      
       router.push('/chat');
     } catch (err) {
       console.error('Login error:', err);
@@ -74,9 +101,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, nickname, password }),
       });
-      
-      // Log response info for debugging
-      console.log('Registration response status:', res.status);
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -102,10 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST', 
         credentials: 'include' 
       });
+      
+      // Clean up socket connection on logout
+      disconnectSocket();
+      
       setUser(null);
       router.push('/login');
     } catch (err) {
       console.error('Logout error:', err);
+      disconnectSocket();
       setUser(null);
       router.push('/login');
     }

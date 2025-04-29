@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getSocket } from '../lib/socket';
+import { getSocket, initSocket } from '../lib/socket';
 import { useAuth } from '../context/AuthContext';
 
 interface OnlineUser {
@@ -13,19 +13,28 @@ export default function OnlineUsers() {
   const { user } = useAuth();
 
   useEffect(() => {
-    const socket = getSocket();
+    // Make sure socket is initialized and connected
+    const socket = user ? initSocket() : getSocket();
     if (!socket) return;
 
+    // Debug logs
+    console.log('OnlineUsers component mounted, socket state:', socket.connected);
+
+    // Handle online users updates
     const handleOnlineUsers = (users: OnlineUser[]) => {
+      console.log('Received onlineUsers event:', users);
       setOnlineUsers(users);
     };
 
+    // Handle typing status updates
     const handleUserTyping = (data: { userId: string; nickname: string; isTyping: boolean }) => {
+      console.log('User typing event:', data);
       setTypingUsers(prev => ({
         ...prev,
         [data.userId]: data.isTyping
       }));
 
+      // Auto-reset typing status after timeout
       if (data.isTyping) {
         setTimeout(() => {
           setTypingUsers(prev => ({
@@ -36,14 +45,28 @@ export default function OnlineUsers() {
       }
     };
 
+    // If socket is connected, request online users list explicitly
+    if (socket.connected) {
+      socket.emit('getOnlineUsers');
+    }
+
+    // Listen for reconnection to request users list again
+    socket.on('connect', () => {
+      console.log('Socket reconnected in OnlineUsers component');
+      socket.emit('getOnlineUsers');
+    });
+
+    // Set up event listeners
     socket.on('onlineUsers', handleOnlineUsers);
     socket.on('userTyping', handleUserTyping);
 
+    // Clean up listeners on unmount
     return () => {
       socket.off('onlineUsers', handleOnlineUsers);
       socket.off('userTyping', handleUserTyping);
+      socket.off('connect');
     };
-  }, []);
+  }, [user]);
 
   return (
     <div className="bg-gray-100 border-l border-gray-200 p-4 w-64">
