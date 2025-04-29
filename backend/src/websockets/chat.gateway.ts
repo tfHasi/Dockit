@@ -14,7 +14,7 @@ interface ConnectedUser {
 @Injectable()
 @WebSocketGateway({
   cors: {
-    origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001',
+    origin: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
     credentials: true,
   },
 })
