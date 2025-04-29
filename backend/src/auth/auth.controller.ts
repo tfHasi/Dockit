@@ -37,14 +37,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const { access_token, user } = await this.authService.login(req.user);
-    res.cookie('jwt', access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000,
-    });
-
-    return { message: 'Login successful', user };
+    res.cookie('jwt', access_token, { /* ... */ });
+    return { message: 'Login successful', user, token: access_token };
   }
 
   @Post('logout')

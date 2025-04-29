@@ -16,15 +16,24 @@ export default function OnlineUsers() {
     const socket = getSocket();
     if (!socket) return;
 
+    // Request initial online users list
     socket.emit('getOnlineUsers');
-    socket.on('onlineUsers', (users: OnlineUser[]) => setOnlineUsers(users));
-    socket.on('userTyping', ({ userId, isTyping }: { userId: string; isTyping: boolean }) => 
-      setTypingUsers(prev => ({ ...prev, [userId]: isTyping }))
-    );
+
+    const handleOnlineUsers = (users: OnlineUser[]) => {
+      console.log('Received online users:', users);
+      setOnlineUsers(users);
+    };
+
+    const handleUserTyping = ({ userId, isTyping }: { userId: string; isTyping: boolean }) => {
+      setTypingUsers(prev => ({ ...prev, [userId]: isTyping }));
+    };
+
+    socket.on('onlineUsers', handleOnlineUsers);
+    socket.on('userTyping', handleUserTyping);
 
     return () => {
-      socket.off('onlineUsers');
-      socket.off('userTyping');
+      socket.off('onlineUsers', handleOnlineUsers);
+      socket.off('userTyping', handleUserTyping);
     };
   }, []);
 
@@ -35,11 +44,13 @@ export default function OnlineUsers() {
         <p className="text-gray-500 text-sm">No users online</p>
       ) : (
         onlineUsers.map(u => (
-          <div key={u.userId} className="flex items-center">
+          <div key={u.userId} className="flex items-center mb-2">
             <span className="font-medium">
               {u.userId === user?.userId ? 'You' : u.nickname}
             </span>
-            {typingUsers[u.userId] && <span className="ml-2 text-xs">typing...</span>}
+            {typingUsers[u.userId] && (
+              <span className="ml-2 text-xs text-gray-500">typing...</span>
+            )}
           </div>
         ))
       )}

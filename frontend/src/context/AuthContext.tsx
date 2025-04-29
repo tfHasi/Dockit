@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { useRouter } from 'next/router';
-import { initSocket, disconnectSocket, initSocketWithDelay } from '../lib/socket';
+import { initSocket, disconnectSocket } from '../lib/socket';
 
 export interface User {
   userId: string;
@@ -48,7 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const data = await res.json();
       setUser(data.user);
-      initSocketWithDelay();
+
+      await initSocket();
       router.push('/chat');
     } catch (err) {
       console.error('Login error:', err);
