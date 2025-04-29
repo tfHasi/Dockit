@@ -1,11 +1,31 @@
-import { AppProps } from 'next/app';
-import { AuthProvider } from '../context/AuthContext';
+import { AppProps } from "next/app";
+import { AuthProvider, useAuth } from "../context/AuthContext";
+import { initSocket, disconnectSocket } from "../lib/socket";
+import { useEffect } from "react";
 import '../styles/globals.css';
 
-export default function MyApp({ Component, pageProps }: AppProps) {
+function InnerApp({ Component, pageProps }: AppProps) {
+  const { isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      initSocket();
+    } else {
+      disconnectSocket();
+    }
+    // clean up on unmount
+    return () => {
+      disconnectSocket();
+    };
+  }, [isAuthenticated]);
+
+  return <Component {...pageProps} />;
+}
+
+export default function MyApp(props: AppProps) {
   return (
     <AuthProvider>
-      <Component {...pageProps} />
+      <InnerApp {...props} />
     </AuthProvider>
   );
 }

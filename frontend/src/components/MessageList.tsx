@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Socket } from 'socket.io-client';
 import { useAuth } from '../context/AuthContext';
 import { getSocket } from '../lib/socket';
 
@@ -19,20 +20,19 @@ export default function MessageList() {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch initial batch of messages
+  // New: track the socket instance
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  // 1) Fetch initial batch of messages
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const response = await fetch(
+        const res = await fetch(
           `${API_BASE_URL}/messages?page=1&limit=20`,
           { credentials: 'include' }
         );
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch messages');
-        }
-
-        const data = await response.json();
+        if (!res.ok) throw new Error('Failed to fetch messages');
+        const data = await res.json();
         setMessages(data);
       } catch (err) {
         console.error('Error fetching messages:', err);
@@ -41,26 +41,30 @@ export default function MessageList() {
         setLoading(false);
       }
     };
-
     fetchMessages();
   }, []);
 
-  // Subscribe to new messages over socket
+  // 2) Grab the socket once it's initialized elsewhere (e.g. in _app.tsx)
   useEffect(() => {
-    const socket = getSocket();
+    const s = getSocket();
+    if (s) setSocket(s);
+  }, [user]); // re-run when user changes (i.e. on login/logout)
+
+  // 3) Subscribe to newMessage only after socket is non-null
+  useEffect(() => {
     if (!socket) return;
 
-    const handleNewMessage = (message: Message) => {
-      setMessages((prev) => [...prev, message]);
+    const handleNewMessage = (msg: Message) => {
+      setMessages(prev => [...prev, msg]);
     };
 
     socket.on('newMessage', handleNewMessage);
     return () => {
       socket.off('newMessage', handleNewMessage);
     };
-  }, []);
+  }, [socket]);
 
-  // Auto-scroll to bottom on new messages
+  // 4) Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -91,7 +95,7 @@ export default function MessageList() {
           No messages yet. Start the conversation!
         </div>
       ) : (
-        messages.map((message) => (
+        messages.map(message => (
           <div
             key={message.id}
             className={`max-w-3/4 p-3 rounded-lg ${
@@ -113,7 +117,7 @@ export default function MessageList() {
           </div>
         ))
       )}
-      <div key="messagesEnd" ref={messagesEndRef} />
+      <div ref={messagesEndRef} />
     </div>
   );
 }
