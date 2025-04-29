@@ -31,8 +31,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket) {
     try {
-      // Extract cookie from handshake
       const cookies = client.handshake.headers.cookie;
+      console.log('Cookies received:', cookies);
       if (!cookies) {
         throw new Error('No cookies found');
       }
