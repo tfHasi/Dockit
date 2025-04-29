@@ -33,7 +33,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleConnection(client: Socket) {
     try {
       const cookies = client.handshake.headers.cookie;
-      console.log('Cookies received:', cookies);
       if (!cookies) {
         throw new Error('No cookies found');
       }
@@ -55,9 +54,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.onlineUsers.set(userId, { socket: client, userId, nickname });
       this.socketToUserId.set(client.id, userId);
       this.broadcastOnlineUsers();
-      console.log(`User connected: ${nickname} (${userId}) with socket ${client.id}`);
     } catch (err) {
-      console.log('Unauthorized connection attempt:', err.message);
       client.disconnect();
     }
   }
@@ -68,7 +65,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (userId) {
       this.onlineUsers.delete(userId);
       this.socketToUserId.delete(client.id);
-      console.log(`Client disconnected: ${client.id} (User: ${userId})`);
     } else {
       console.log(`Unknown client disconnected: ${client.id}`);
     }
@@ -81,7 +77,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       nickname: u.nickname,
     }));
     
-    console.log(`Broadcasting ${users.length} online users`);
     this.server.emit('onlineUsers', users);
   }
 
@@ -123,10 +118,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleMessage(client: Socket, payload: { text: string }) {
     try {
       const userId = client['user'].sub;
-      console.log(`Socket message from user ${userId}`);
-
       const message = await this.messageService.create({ text: payload.text }, userId);
-
       this.server.emit('newMessage', {
         id: message._id,
         text: message.text,

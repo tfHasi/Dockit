@@ -20,10 +20,8 @@ export default function MessageList() {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // New: track the socket instance
   const [socket, setSocket] = useState<Socket | null>(null);
 
-  // 1) Fetch initial batch of messages
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -44,13 +42,11 @@ export default function MessageList() {
     fetchMessages();
   }, []);
 
-  // 2) Grab the socket once it's initialized elsewhere (e.g. in _app.tsx)
   useEffect(() => {
     const s = getSocket();
     if (s) setSocket(s);
-  }, [user]); // re-run when user changes (i.e. on login/logout)
+  }, [user]);
 
-  // 3) Subscribe to newMessage only after socket is non-null
   useEffect(() => {
     if (!socket) return;
 
@@ -64,7 +60,6 @@ export default function MessageList() {
     };
   }, [socket]);
 
-  // 4) Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -94,7 +89,7 @@ export default function MessageList() {
       ) : (
         messages.map((message, index) => (
           <div
-            key={message.id || `message-${index}-${Date.now()}`} // Fallback to index + timestamp
+            key={message.id || `message-${index}-${Date.now()}`}
             className={`max-w-3/4 p-3 rounded-lg ${
               message.userId === user?.userId
                 ? 'ml-auto bg-blue-500 text-white'
