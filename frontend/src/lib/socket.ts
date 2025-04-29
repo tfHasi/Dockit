@@ -4,32 +4,37 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 let socket: Socket | null = null;
 
-export const initSocket = (): Promise<Socket> => {
+export const initSocket = async (): Promise<Socket> => {
+  if (socket?.connected) {
+    return socket;
+  }
+
+  if (socket) {
+    socket.connect();
+    return new Promise((resolve, reject) => {
+      socket!.on('connect', () => resolve(socket!));
+      socket!.on('connect_error', (err) => reject(err));
+    });
+  }
+
+  console.log('Initializing new socket connection to:', API_BASE_URL);
+
+  socket = io(API_BASE_URL!, {
+    autoConnect: true,
+    withCredentials: true,
+    reconnectionAttempts: 5,
+    reconnectionDelay: 1000,
+  });
+
   return new Promise((resolve, reject) => {
-    if (socket) {
-      console.log('Socket already initialized');
-      return resolve(socket);
-    }
-
-    console.log('Initializing socket connection to:', API_BASE_URL);
-
-    socket = io(API_BASE_URL!, {
-      autoConnect: true,
-      withCredentials: true,
+    socket!.on('connect', () => {
+      console.log('✅ Socket connected successfully:', socket!.id);
+      resolve(socket!);
     });
 
-    socket.on('connect', () => {
-      console.log('✅ Socket connected successfully:', socket.id);
-      resolve(socket);
-    });
-
-    socket.on('connect_error', (err) => {
+    socket!.on('connect_error', (err) => {
       console.error('❌ Socket connection error:', err.message);
       reject(err);
-    });
-
-    socket.on('disconnect', (reason) => {
-      console.log('⚠️ Socket disconnected:', reason);
     });
   });
 };

@@ -1,34 +1,34 @@
-// pages/_app.tsx
 import { AppProps } from 'next/app';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { initSocket, disconnectSocket } from '../lib/socket';
+import { initSocket, disconnectSocket, getSocket } from '../lib/socket';
 import '../styles/globals.css';
 
 function InnerApp({ Component, pageProps }: AppProps) {
   const { isAuthenticated } = useAuth();
 
   useEffect(() => {
-    let isMounted = true;
-
-    if (isAuthenticated) {
-      initSocket()
-        .then((socket) => {
-          if (isMounted) {
-            console.log('📡 Emitting getOnlineUsers after login');
-            socket.emit('getOnlineUsers');
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to initialize socket:', err.message);
-        });
-    } else {
+    if (!isAuthenticated) {
       disconnectSocket();
+      return;
     }
 
+    const initializeSocket = async () => {
+      try {
+        await initSocket();
+        const socket = getSocket();
+        if (socket) {
+          console.log('📡 Socket initialized, getting online users');
+          socket.emit('getOnlineUsers');
+        }
+      } catch (err) {
+        console.error('Socket initialization error:', err);
+      }
+    };
+
+    initializeSocket();
+
     return () => {
-      isMounted = false;
-      disconnectSocket();
     };
   }, [isAuthenticated]);
 
