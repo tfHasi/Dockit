@@ -15,14 +15,23 @@ export default function Register() {
     e.preventDefault();
     setError('');
     
+    // Client-side validation
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+
     try {
+      console.log('Attempting registration with:', email, nickname);
       await register(email, nickname, password);
+      console.log('Registration successful');
     } catch (err) {
+      console.error('Registration error:', err);
       setError(err instanceof Error ? err.message : 'Registration failed');
     }
   };

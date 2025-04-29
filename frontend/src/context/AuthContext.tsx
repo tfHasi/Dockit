@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 export interface User {
@@ -26,41 +26,89 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Changed to false since we're not loading initially
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const API = process.env.NEXT_PUBLIC_API_URL!;
+  const API = process.env.NEXT_PUBLIC_API_URL;
+
+  useEffect(() => {
+    console.log('API URL:', API);
+    if (!API) {
+      console.error('NEXT_PUBLIC_API_URL environment variable is not set');
+    }
+  }, [API]);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-    const res = await fetch(`${API}/auth/login`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    if (!res.ok) throw new Error('Login failed');
-    const { user: u } = await res.json();
-    setUser(u);
-    router.push('/chat');
-    setIsLoading(false);
+    try {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Login failed');
+      }
+      
+      const data = await res.json();
+      setUser(data.user);
+      router.push('/chat');
+    } catch (err) {
+      console.error('Login error:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const register = async (email: string, nickname: string, password: string) => {
     setIsLoading(true);
-    const res = await fetch(`${API}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, nickname, password }),
-    });
-    if (!res.ok) throw new Error('Registration failed');
-    router.push('/login');
-    setIsLoading(false);
+    try {
+      console.log('Sending registration request to:', `${API}/auth/register`);
+      
+      const res = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nickname, password }),
+      });
+      
+      // Log response info for debugging
+      console.log('Registration response status:', res.status);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('Registration error response:', errorData);
+        throw new Error(errorData.message || `Registration failed with status ${res.status}`);
+      }
+      
+      const data = await res.json();
+      console.log('Registration success response:', data);
+      
+      router.push('/login');
+    } catch (err) {
+      console.error('Registration error:', err);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = async () => {
-    await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' });
-    setUser(null);
-    router.push('/login');
+    try {
+      await fetch(`${API}/auth/logout`, { 
+        method: 'POST', 
+        credentials: 'include' 
+      });
+      setUser(null);
+      router.push('/login');
+    } catch (err) {
+      console.error('Logout error:', err);
+      setUser(null);
+      router.push('/login');
+    }
   };
 
   return (
