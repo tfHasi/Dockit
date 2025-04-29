@@ -23,6 +23,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private onlineUsers = new Map<string, ConnectedUser>();
+  private socketToUserId = new Map<string, string>();
 
   constructor(
     private messageService: MessageService,
@@ -36,8 +37,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!cookies) {
         throw new Error('No cookies found');
       }
-      
-      // Parse the cookie string to find JWT
       const cookieArray = cookies.split(';').map(cookie => cookie.trim());
       const jwtCookie = cookieArray.find(cookie => cookie.startsWith('jwt='));
       
@@ -52,11 +51,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const nickname = payload.nickname;
   
       client['user'] = payload;
-      
-      // Store user by userId instead of socket ID for better tracking
+
       this.onlineUsers.set(userId, { socket: client, userId, nickname });
-  
-      // Broadcast updated user list immediately after a new connection
+      this.socketToUserId.set(client.id, userId);
       this.broadcastOnlineUsers();
       console.log(`User connected: ${nickname} (${userId}) with socket ${client.id}`);
     } catch (err) {
@@ -66,24 +63,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
-    // Find and remove the user by socket ID
-    let userIdToRemove: string | null = null;
+    const userId = this.socketToUserId.get(client.id);
     
-    for (const [userId, userData] of this.onlineUsers.entries()) {
-      if (userData.socket.id === client.id) {
-        userIdToRemove = userId;
-        break;
-      }
-    }
-    
-    if (userIdToRemove) {
-      this.onlineUsers.delete(userIdToRemove);
-      console.log(`Client disconnected: ${client.id} (User: ${userIdToRemove})`);
+    if (userId) {
+      this.onlineUsers.delete(userId);
+      this.socketToUserId.delete(client.id);
+      console.log(`Client disconnected: ${client.id} (User: ${userId})`);
     } else {
       console.log(`Unknown client disconnected: ${client.id}`);
     }
-    
-    // Broadcast updated user list after a disconnection
     this.broadcastOnlineUsers();
   }
 
@@ -103,12 +91,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId: u.userId,
       nickname: u.nickname,
     }));
-    
-    // Send online users list directly to the requesting client
+
     client.emit('onlineUsers', users);
   }
   
-  // Public method that can be called from MessageController to broadcast a new message
+
   broadcastNewMessage(message: any) {
     this.server.emit('newMessage', {
       id: message._id,
@@ -123,7 +110,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('messageNotification')
   async handleMessageNotification(client: Socket) {
     try {
-      // This is a simpler version that just triggers a refresh
       client.broadcast.emit('refreshMessages');
       return { success: true };
     } catch (error) {
@@ -137,6 +123,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleMessage(client: Socket, payload: { text: string }) {
     try {
       const userId = client['user'].sub;
+      console.log(`Socket message from user ${userId}`);
 
       const message = await this.messageService.create({ text: payload.text }, userId);
 

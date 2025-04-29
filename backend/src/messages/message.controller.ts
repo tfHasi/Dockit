@@ -14,9 +14,10 @@ export class MessageController {
   @UseGuards(JwtAuthGuard)
   @Post()
   async create(@Body() createMessageDto: CreateMessageDto, @Request() req) {
-    const message = await this.messageService.create(createMessageDto, req.user.userId);
+    const userId = req.user.userId;
+    console.log(`REST API message creation from user ${userId}`);
     
-    // Broadcast the new message to all connected websocket clients
+    const message = await this.messageService.create(createMessageDto, userId);
     this.chatGateway.broadcastNewMessage(message);
     
     return message;

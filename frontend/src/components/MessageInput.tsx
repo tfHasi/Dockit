@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getSocket } from '../lib/socket';
+import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -7,11 +8,12 @@ export default function MessageInput() {
   const [message, setMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!message.trim()) return;
+    if (!message.trim() || !user) return;
 
     const socket = getSocket();
     if (!socket) {
@@ -22,22 +24,19 @@ export default function MessageInput() {
     setIsSending(true);
 
     try {
-      // Post the message to the REST API endpoint
+      console.log(`Sending message as user: ${user.userId} (${user.nickname})`);
       const response = await fetch(`${API_BASE_URL}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Important for cookie authentication
+        credentials: 'include',
         body: JSON.stringify({ text: message.trim() }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to send message');
       }
-
-      // NOTE: We no longer need to emit a custom event;
-      // the server will broadcast the 'newMessage' event automatically.
 
       setMessage('');
       setIsTyping(false);
@@ -50,7 +49,7 @@ export default function MessageInput() {
 
   useEffect(() => {
     const socket = getSocket();
-    if (!socket) return;
+    if (!socket || !user) return;
 
     let typingTimeout: NodeJS.Timeout | null = null;
 
@@ -75,7 +74,7 @@ export default function MessageInput() {
         clearTimeout(typingTimeout);
       }
     };
-  }, [message, isTyping]);
+  }, [message, isTyping, user]);
 
   return (
     <form
@@ -94,7 +93,7 @@ export default function MessageInput() {
         />
         <button
           type="submit"
-          disabled={!message.trim() || isSending}
+          disabled={!message.trim() || isSending || !user}
           className="px-4 py-2 bg-blue-500 text-white rounded-r-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-300"
         >
           {isSending ? (
@@ -129,6 +128,11 @@ export default function MessageInput() {
       <div className="text-xs text-right mt-1 text-gray-500">
         {500 - message.length} characters remaining
       </div>
+      {user && (
+        <div className="text-xs text-left mt-1 text-gray-500">
+          Sending as: {user.nickname}
+        </div>
+      )}
     </form>
   );
 }
