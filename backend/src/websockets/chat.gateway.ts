@@ -52,10 +52,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const nickname = payload.nickname;
   
       client['user'] = payload;
-      this.onlineUsers.set(client.id, { socket: client, userId, nickname });
+      
+      // Store user by userId instead of socket ID for better tracking
+      this.onlineUsers.set(userId, { socket: client, userId, nickname });
   
+      // Broadcast updated user list immediately after a new connection
       this.broadcastOnlineUsers();
-      console.log(`User connected: ${nickname} (${client.id})`);
+      console.log(`User connected: ${nickname} (${userId}) with socket ${client.id}`);
     } catch (err) {
       console.log('Unauthorized connection attempt:', err.message);
       client.disconnect();
@@ -63,9 +66,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
-    this.onlineUsers.delete(client.id);
+    // Find and remove the user by socket ID
+    let userIdToRemove: string | null = null;
+    
+    for (const [userId, userData] of this.onlineUsers.entries()) {
+      if (userData.socket.id === client.id) {
+        userIdToRemove = userId;
+        break;
+      }
+    }
+    
+    if (userIdToRemove) {
+      this.onlineUsers.delete(userIdToRemove);
+      console.log(`Client disconnected: ${client.id} (User: ${userIdToRemove})`);
+    } else {
+      console.log(`Unknown client disconnected: ${client.id}`);
+    }
+    
+    // Broadcast updated user list after a disconnection
     this.broadcastOnlineUsers();
-    console.log(`Client disconnected: ${client.id}`);
   }
 
   private broadcastOnlineUsers() {
@@ -73,12 +92,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId: u.userId,
       nickname: u.nickname,
     }));
+    
+    console.log(`Broadcasting ${users.length} online users`);
     this.server.emit('onlineUsers', users);
   }
 
-  /**
-   * Public method that can be called from MessageController to broadcast a new message
-   */
+  @SubscribeMessage('getOnlineUsers')
+  handleGetOnlineUsers(client: Socket) {
+    const users = Array.from(this.onlineUsers.values()).map(u => ({
+      userId: u.userId,
+      nickname: u.nickname,
+    }));
+    
+    // Send online users list directly to the requesting client
+    client.emit('onlineUsers', users);
+  }
+  
+  // Public method that can be called from MessageController to broadcast a new message
   broadcastNewMessage(message: any) {
     this.server.emit('newMessage', {
       id: message._id,
