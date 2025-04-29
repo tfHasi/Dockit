@@ -10,9 +10,9 @@ export default function MessageInput() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!message.trim()) return;
-    
+
     const socket = getSocket();
     if (!socket) {
       console.error('Socket not connected');
@@ -22,7 +22,7 @@ export default function MessageInput() {
     setIsSending(true);
 
     try {
-      // First POST the message to the backend
+      // Post the message to the REST API endpoint
       const response = await fetch(`${API_BASE_URL}/messages`, {
         method: 'POST',
         headers: {
@@ -36,17 +36,15 @@ export default function MessageInput() {
         throw new Error('Failed to send message');
       }
 
-      const savedMessage = await response.json();
+      // NOTE: We no longer need to emit a custom event;
+      // the server will broadcast the 'newMessage' event automatically.
 
-      // Then emit via socket (optional, but good if you want to notify others immediately)
-      socket.emit('sendMessage', { id: savedMessage.id });
-
+      setMessage('');
+      setIsTyping(false);
     } catch (error) {
       console.error('Error sending message:', error);
     } finally {
       setIsSending(false);
-      setMessage('');
-      setIsTyping(false);
     }
   };
 
@@ -80,7 +78,7 @@ export default function MessageInput() {
   }, [message, isTyping]);
 
   return (
-    <form 
+    <form
       onSubmit={handleSubmit}
       className="p-4 border-t border-gray-200 bg-white"
     >
@@ -101,13 +99,31 @@ export default function MessageInput() {
         >
           {isSending ? (
             <span className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               Sending
             </span>
-          ) : 'Send'}
+          ) : (
+            'Send'
+          )}
         </button>
       </div>
       <div className="text-xs text-right mt-1 text-gray-500">

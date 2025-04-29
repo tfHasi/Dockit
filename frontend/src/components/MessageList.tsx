@@ -19,21 +19,23 @@ export default function MessageList() {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Fetch initial batch of messages
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/messages?page=1&limit=20`, {
-          credentials: 'include',
-        });
-        
+        const response = await fetch(
+          `${API_BASE_URL}/messages?page=1&limit=20`,
+          { credentials: 'include' }
+        );
+
         if (!response.ok) {
           throw new Error('Failed to fetch messages');
         }
-        
+
         const data = await response.json();
         setMessages(data);
-      } catch (error) {
-        console.error('Error fetching messages:', error);
+      } catch (err) {
+        console.error('Error fetching messages:', err);
         setError('Failed to load messages. Please try again later.');
       } finally {
         setLoading(false);
@@ -43,22 +45,22 @@ export default function MessageList() {
     fetchMessages();
   }, []);
 
+  // Subscribe to new messages over socket
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
 
     const handleNewMessage = (message: Message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
+      setMessages((prev) => [...prev, message]);
     };
 
     socket.on('newMessage', handleNewMessage);
-
     return () => {
       socket.off('newMessage', handleNewMessage);
     };
   }, []);
 
-  // Scroll to bottom when new messages arrive
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -66,7 +68,7 @@ export default function MessageList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500" />
       </div>
     );
   }
@@ -82,12 +84,15 @@ export default function MessageList() {
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4 space-y-4">
       {messages.length === 0 ? (
-        <div className="flex items-center justify-center h-full text-gray-500">
+        <div
+          key="no-messages"
+          className="flex items-center justify-center h-full text-gray-500"
+        >
           No messages yet. Start the conversation!
         </div>
       ) : (
         messages.map((message) => (
-          <div 
+          <div
             key={message.id}
             className={`max-w-3/4 p-3 rounded-lg ${
               message.userId === user?.userId
@@ -100,12 +105,15 @@ export default function MessageList() {
             </div>
             <div className="mt-1">{message.text}</div>
             <div className="text-xs mt-1 text-right">
-              {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(message.createdAt).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
             </div>
           </div>
         ))
       )}
-      <div ref={messagesEndRef} />
+      <div key="messagesEnd" ref={messagesEndRef} />
     </div>
   );
 }
