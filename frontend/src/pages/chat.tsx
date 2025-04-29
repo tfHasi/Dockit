@@ -4,65 +4,22 @@ import { withAuth } from '../hoc/withAuth';
 import MessageList from '../components/MessageList';
 import MessageInput from '../components/MessageInput';
 import OnlineUsers from '../components/OnlineUsers';
-import { useAuth } from '../context/AuthContext';
-import { initSocket, disconnectSocket } from '../lib/socket';
-import { useRouter } from 'next/router';
 
 function Chat() {
-  const { user } = useAuth();
-  const router = useRouter();
-
   useEffect(() => {
-    const socket = initSocket();
-    
-    return () => {
-      disconnectSocket();
-    };
   }, []);
-
-  const handleLogout = () => {
-    router.push('/login');
-  };
 
   return (
     <>
       <Head>
         <title>Chat Room | Chat App</title>
       </Head>
-      
-      <div className="flex flex-col h-screen">
-        {/* Header */}
-        <header className="bg-blue-600 text-white p-4 shadow-md">
-          <div className="container mx-auto flex justify-between items-center">
-            <h1 className="text-xl font-bold">Chat Room</h1>
-            <div className="flex items-center space-x-4">
-              <span>Welcome, {user?.nickname}</span>
-              <button
-                onClick={handleLogout}
-                className="px-3 py-1 bg-blue-700 hover:bg-blue-800 rounded text-sm"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Main content */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Chat area */}
-          <div className="flex flex-col flex-1">
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto">
-              <MessageList />
-            </div>
-            
-            {/* Message input */}
-            <MessageInput />
-          </div>
-          
-          {/* Online users sidebar */}
-          <OnlineUsers />
+      <div className="flex h-screen">
+        <div className="flex-1 flex flex-col">
+          <MessageList />
+          <MessageInput />
         </div>
+        <OnlineUsers />
       </div>
     </>
   );

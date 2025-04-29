@@ -88,16 +88,13 @@ export default function MessageList() {
   return (
     <div className="flex flex-col h-full overflow-y-auto p-4 space-y-4">
       {messages.length === 0 ? (
-        <div
-          key="no-messages"
-          className="flex items-center justify-center h-full text-gray-500"
-        >
+        <div key="no-messages" className="flex items-center justify-center h-full text-gray-500">
           No messages yet. Start the conversation!
         </div>
       ) : (
-        messages.map(message => (
+        messages.map((message, index) => (
           <div
-            key={message.id}
+            key={message.id || `message-${index}-${Date.now()}`} // Fallback to index + timestamp
             className={`max-w-3/4 p-3 rounded-lg ${
               message.userId === user?.userId
                 ? 'ml-auto bg-blue-500 text-white'
@@ -117,7 +114,7 @@ export default function MessageList() {
           </div>
         ))
       )}
-      <div ref={messagesEndRef} />
+      <div key="scroll-anchor" ref={messagesEndRef} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
-import { AppProps } from "next/app";
-import { AuthProvider, useAuth } from "../context/AuthContext";
-import { initSocket, disconnectSocket } from "../lib/socket";
-import { useEffect } from "react";
+import { AppProps } from 'next/app';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import { initSocket, disconnectSocket, initSocketWithDelay } from '../lib/socket';
+import { useEffect } from 'react';
 import '../styles/globals.css';
 
 function InnerApp({ Component, pageProps }: AppProps) {
@@ -9,11 +9,11 @@ function InnerApp({ Component, pageProps }: AppProps) {
 
   useEffect(() => {
     if (isAuthenticated) {
-      initSocket();
+      initSocketWithDelay();
     } else {
       disconnectSocket();
     }
-    // clean up on unmount
+
     return () => {
       disconnectSocket();
     };
